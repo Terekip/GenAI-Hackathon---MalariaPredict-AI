@@ -90,13 +90,14 @@ graph TB
         USER --> SESS[Session Store]
     end
     
-    style UI fill:#e1f5fe
-    style RW fill:#f3e5f5
-    style NLP fill:#f1f8e9
-    style TA fill:#fff3e0
-    style MRA fill:#ffebee
-    style GA fill:#e8f5e8
-    style EA fill:#fff8e1
+    style UI fill:#81d4fa
+    style RW fill:#ce93d8
+    style NLP fill:#aed581
+    style TA fill:#ffb74d
+    style MRA fill:#e57373
+    style GA fill:#81c784
+    style EA fill:#ffd54f
+
 ```
 ## Installation & Setup
 

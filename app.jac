@@ -16,7 +16,7 @@ import from dotenv {load_dotenv}
 
 glob llm = Model(model_name="gemini/gemini-2.5-flash", verbose=True);
 
-#GEMINI_API_KEY = os.getenv("GEMINI_API_KEY");
+
 # ----------------------------------------------------
 # SESSION STORAGE
 # ----------------------------------------------------
@@ -42,9 +42,10 @@ node user {
 
 node prevention{
     has language: str = "";
+
    
 
-
+   
     #print("Debug: Prevention running");  
      """
         You are a friendly malaria prevention educator speaking fluently in {self.get_lang_name()}.
@@ -1562,6 +1563,7 @@ def LandingPage() -> any {
 
 with entry{
     load_dotenv();
+     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY");
     
 }
 

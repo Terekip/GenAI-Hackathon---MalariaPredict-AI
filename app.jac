@@ -4,17 +4,17 @@ import uuid;
 import json;
 import http;
 import urllib;
+import statistics;
 import from datetime {datetime}
-import from byllm.lib { Model }
+import from byllm.lib {Model}
 import litellm;
 import from dotenv {load_dotenv}
 
-# Enable debug mode (add this line)
-#litellm._turn_on_debug()
 
-#glob llm = Model(model_name="gpt-4o");
-#glob llm = Model(model_name="gemini/gemini-2.0-flash", verbose=True);
-glob llm = Model(model_name="groq/llama3-8b-8192", verbose=True);
+
+
+glob llm = Model(model_name="gemini/gemini-2.5-flash", verbose=True);
+
 # ----------------------------------------------------
 # SESSION STORAGE
 # ----------------------------------------------------
@@ -42,28 +42,20 @@ node prevention{
     has language: str = "";
    
 
-   
-    def get_lang_name() -> str {
-        if self.language == "sw" {
-            return "Kiswahili";
-        } else {
-            return "English";
-        }
-    }
-        
 
-
-    def generate_tips() -> str by llm(
-        method = "ReAct",
-        tools = (),
-        prompt =        """
+    #print("Debug: Prevention running");  
+     """
         You are a friendly malaria prevention educator speaking fluently in {self.get_lang_name()}.
         Give some practical, and powerful malaria prevention tips and elaborate each tip .
         Number them 1 to 3.
         Use simple, everyday language that anyone can understand.
         End with one short encouraging sentence.
         Make it engaging and easy to remember.
-        """
+        """ 
+
+    def generate_tips() -> str by llm(
+        method = "ReAct",
+        tools = ()
 
     );
 
@@ -133,7 +125,7 @@ node geoagent {
         conn2.request("POST", "/api/interpreter", body=body, headers=headers2);
         overpass_response = conn2.getresponse();
 
-        print("Overpass status: " + str(overpass_response.status));
+        
 
         if overpass_response.status != 200 {
             print("Overpass failed");
@@ -143,12 +135,12 @@ node geoagent {
 
         overpass_data = overpass_response.read().decode("utf-8");
         conn2.close();
-        print("overpass_data:"+ overpass_data);
+        
 
         result_json = json.loads(overpass_data);
-        print("debug:Result json:" , result_json);
+        
         elements = result_json["elements"];
-        print("elements:"+ json.dumps(elements, indent=2));
+        
         elements_list = [];
         for elem in elements {
             elements_list.append(elem);
@@ -177,9 +169,9 @@ node geoagent {
                 response_lines.append("No hospitals found nearby.");
                 print("Debug:" + response_lines);
             }
-            print("DEBUG: No hospitals found");
+            
         } else {
-            print("Has started");
+            
             count = 0;
             while count < elements_count and count < 5 {
                 elem = elements_list[count];
@@ -188,16 +180,16 @@ node geoagent {
                 if "tags" in elem and "name" in elem["tags"] {
                     name = elem["tags"]["name"];
                 }
-                print("Its going well");
+               
 
                 lat_c = elem.get("lat", 0);
                 lon_c = elem.get("lon", 0);
-                print("Keep going");
+                
 
 
                 link = "https://maps.google.com/?q=" + str(lat_c) + "," + str(lon_c);
 
-                line = str(count + 1) + ". " + name + "\n   Mwelekeo: " + link + "\n";
+                line = str(count + 1) + ". " + name + "\n   Mwelekeo: "+ link + "\n";
                 response_lines.append(line);
 
                 count += 1;
@@ -212,8 +204,7 @@ node geoagent {
             print("DEBUG: Successfully built list with " + str(response_lines) + " lines");
              
         }
-         #print("Debug:" + response_lines);
-        # Final report — always runs, whether hospitals found or not
+     
         return response_lines;
         
     }
@@ -223,6 +214,150 @@ node geoagent {
 #-----------------------------------
 # Prediction Node
 #-----------------------------------
+node malaria_risk {
+    has location: str = " ";
+    has api_key: str = "ecbcff149136294d5f1c3d9f35039dae";
+    has language: str = "";
+    has prediction: str = [];
+
+    def compute() -> dict {
+        
+        api_key = "ecbcff149136294d5f1c3d9f35039dae";
+        print("DEBUG: calculating risk in "+" " + self.location + " " + self.language);
+        loc = self.location.strip().lower();
+        # ---------------------------
+        # Build request
+        # ---------------------------
+        print("going");
+        conn = http.client.HTTPSConnection("pro.openweathermap.org");
+        path = "/data/2.5/forecast/climate?q="+ loc + "&appid="
+             + api_key + "&units=metric&cnt=30";
+        conn.request("GET", path);
+        resp = conn.getresponse();
+        print("Openweather status: " + str(resp.status));
+
+        if resp.status != 200 {
+            if here.language == "sw" {
+                prediction.append("Hitilafu ya API ya hali ya hewa.");
+            } else {
+                prediction.append("Weather API error.");
+            }
+            report prediction;
+            conn.close();
+        
+        }
+
+        data = json.loads(resp.read().decode("utf-8"));
+        conn.close();
+        
+
+
+        forecast = data["list"];
+    
+
+
+        temps = [];
+        rains = [];
+        hums = [];
+        
+
+        # ---------------------------
+        # Parse forecast safely
+        # ---------------------------
+        temps = [day['temp']['day'] for day in forecast];
+        rains = [day.get('rain', 0) for day in forecast];
+        hums = [day['humidity'] for day in forecast];
+        print("DEBUG: Temps array = " + str(temps));
+        print("DEBUG: rains array = " + str(rains));
+        print("DEBUG: hums array = " + str(hums));
+        
+        avg_temp = statistics.mean(temps);
+        total_rain = sum(rains);
+        avg_hum = statistics.mean(hums);
+        print("DEBUG: Avg Temp = " + str(avg_temp) + " °C");
+        print("DEBUG: Total Rain = " + str(total_rain) + " mm");
+        print("DEBUG: Avg Humidity = " + str(avg_hum) + " %");
+
+        # ---------------------------
+        # Risk calculation
+        # ---------------------------
+        temp_score = 0.0;
+        if avg_temp >= 20.0 {
+            if avg_temp <= 30.0 {
+                temp_score = 1.0;
+            } elif avg_temp < 34.0 {
+                temp_score = (34.0 - avg_temp) / 4.0;
+            }
+        } elif avg_temp > 16.0 {
+            temp_score = (avg_temp - 16.0) / 4.0;
+        }
+
+        rain_score = 0.0;
+        if total_rain >= 15.0 {
+            rain_score = 1.0;
+            if total_rain > 150.0 {
+                rain_score = 1.0 - (total_rain - 150.0) / 300.0;
+                if rain_score < 0.0 {
+                    rain_score = 0.0;
+                }
+            }
+        }
+
+        hum_score = (avg_hum - 60.0) / 30.0;
+        if hum_score < 0.0 {
+            hum_score = 0.0;
+        }
+        if hum_score > 1.0 {
+            hum_score = 1.0;
+        }
+
+        risk = round(temp_score * rain_score * hum_score, 3);
+        print("DEBUG: risk = " + str(risk));
+        # ---------------------------
+        # Language-aware output
+        # ---------------------------
+        prediction = [];
+        city_name = loc.capitalize();
+        if user.language == "sw" {
+            prediction.append("Utabiri wa siku 30 zijazo kwa " + city_name + ":");
+            prediction.append("  Wastani wa Joto: " + str(round(avg_temp, 1)) + " °C");
+            prediction.append("  Jumla ya Mvua: " + str(round(total_rain, 1)) + " mm");
+            prediction.append("  Wastani wa Unyevu: " + str(round(avg_hum, 1)) + " %");
+            prediction.append("  Uwezekano wa Hatari: " + str(risk));
+            print("going");
+            if risk > 0.7 {
+                prediction.append("  Kiwango: Kikubwa");
+            } elif risk > 0.3 {
+                prediction.append("  Kiwango: Cha Kati");
+            } else {
+                prediction.append("  Kiwango: Kidogo");
+            }
+            
+        } else {
+            prediction.append("Next 30 days for " + city_name + ":");
+            prediction.append("  Avg Temperature: " + str(round(avg_temp)) + " °C");
+            prediction.append("  Total Rainfall: " + str(round(total_rain)) + " mm");
+            prediction.append("  Avg Humidity: " + str(round(avg_hum)) + " %");
+            prediction.append("  Risk Probability: " + str(risk));
+            print("continuing");
+            if risk > 0.7 {
+                prediction.append("  Level: High (>0.7)");
+            } elif risk > 0.3 {
+                prediction.append("  Level: Moderate (0.3–0.7)");
+            } else {
+                prediction.append("  Level: Low (<0.3)");
+            }
+            print( "DEBUG: Successfully built prediction with " + str(len(prediction)) + " lines");
+
+
+        }
+
+        # ---------------------------
+        # Single final report
+        # ---------------------------
+        return prediction;
+    }
+}
 
     
 
@@ -278,6 +413,10 @@ walker user_agent {
             print("DEBUG:user in find_hospitals");
             user.location = self.message.strip();
             here spawn geo_agent(user);
+        }elif user.stage.startswith("checking_"){
+            print("DEBUG:user in checking_malaria_risk");
+            user.location =self.message.strip();
+            here spawn malaria_risk_agent(user);
         }
           else {
             print("DEBUG: User is NOT in triage, spawning nlp_agent");
@@ -368,7 +507,7 @@ walker nlp_agent {
             if choice == "1" { 
                 here spawn triage_agent(message=self.message);disengage;
                 }
-            elif choice == "2" { here spawn ml_agent(user);disengage;}
+            elif choice == "2" { here spawn malaria_risk_agent(user);disengage;}
             elif choice == "3" { here spawn geo_agent(user);disengage; }
             elif choice == "4" { here spawn education_agent(user);disengage; }
             elif choice == "5" {
@@ -542,7 +681,7 @@ walker triage_agent {
                 user.symptoms.append("fatigue");
             }
             
-            # Now do final diagnosis
+            # final diagnosis
             fever := "fever" in user.symptoms;
             total := len(user.symptoms);
             
@@ -555,36 +694,40 @@ walker triage_agent {
                     response=["HATARI KUBWA SANA - MALARIA KALI INAWEZEKANA\n\n"
                         "Dalili zako zinafanana sana na malaria hatari.\n"
                         "NENDA HOSPITALI MARA MOJA - HATA USIKU WA MANANE!\n"
-                        "Bila matibabu ya haraka, malaria inaweza kusababisha kifo ndani ya masaa 24.\n\n"
-                        "Unataka nikutafutie hospitali ya karibu sasa hivi? (Andika 'Ndiyo')"];
+                        "Bila matibabu ya haraka, malaria inaweza kusababisha kifo ndani ya masaa 24."];
                     report {"response": response};
+
+                    
                 }
                 elif fever and total >= 2 {
                     user.risk_level = "high";
                     response=["HATARI KUBWA - MALARIA INAWEZEKANA SANA\n\n"
                         "Una homa pamoja na dalili nyingine mbili au zaidi.\n"
                         "Hii ni ishara kubwa ya malaria.\n"
-                        "NENDA KUPIMA NA KUPATA MATIBABU LEO HIVI.\n\n"
-                        "Je, unataka nikusaidie kutafuta hospitali ya karibu? (Ndiyo/Hapana)"];
+                        "NENDA KUPIMA NA KUPATA MATIBABU LEO HIVI."];
                     report {"response": response};
+                    
+                    
                 }
                 elif fever or total >= 3 {
                     user.risk_level = "medium";
                     response=["KUNA UWEZEKANO WA MALARIA\n\n"
                         "Dalili zako zinaweza kuwa malaria au ugonjwa mwingine.\n"
                         "USIPUUZE - nenda kupima malaria hospitalini ndani ya masaa 24.\n"
-                        "Malaria inaweza kuwa mbaya ghafla bila dalili nyingi za awali.\n\n"
-                        "Kinga bora: lala ndani ya chandarua kila usiku."];
+                        "Malaria inaweza kuwa mbaya ghafla bila dalili nyingi za awali."
+                        ];
                     report {"response": response};
+                    
                 }
                 else {
                     user.risk_level = "low";
                     response=["KWA SASA HATARI NI NDOGO\n\n"
                         "Dalili zako hazionyeshi malaria sana kwa sasa.\n"
                         "LAKINI ukipata homa, baridi, au maumivu ya kichwa ghafla - nenda hospitali mara moja.\n\n"
-                        "Malaria inaweza kuanza kwa dalili ndogo tu.\n"
-                        "Tumia chandarua + dawa ya mbu kila siku."];
+                        "Malaria inaweza kuanza kwa dalili ndogo tu."
+                        ];
                     report {"response": response};
+                    
                 };
             } else {
                 # English version
@@ -593,41 +736,50 @@ walker triage_agent {
                     response=["VERY HIGH RISK - SEVERE MALARIA LIKELY\n\n"
                         "Your symptoms strongly suggest severe malaria.\n"
                         "GO TO HOSPITAL IMMEDIATELY - EVEN AT NIGHT!\n"
-                        "Without urgent treatment, malaria can cause death within 24 hours.\n\n"
-                        "Would you like me to find a nearby hospital for you? (Reply 'Yes')"];
+                        "Without urgent treatment, malaria can cause death within 24 hours."
+                        ];
                     report {"response": response};
+                    
                 }
                 elif fever and total >= 2 {
                     user.risk_level = "high";
                     response=["HIGH RISK - MALARIA VERY LIKELY\n\n"
                         "You have a fever with two or more other symptoms.\n" 
                         "This is a strong sign of malaria.\n"
-                        "GET TESTED AND TREATED TODAY.\n\n"
-                        "Do you want help finding a nearby hospital? (Yes/No)"];
+                        "GET TESTED AND TREATED TODAY."
+                        ];
                     report {"response": response};
+                    
+                    
                 }
                 elif fever or total >= 3 {  
                     user.risk_level = "medium";
                     response=["POSSIBLE MALARIA\n\n"
                         "Your symptoms could be malaria or another illness.\n"
                         "DON'T IGNORE IT - get tested within 24 hours.\n"
-                        "Malaria can worsen suddenly without many early symptoms.\n\n"
-                        "Best prevention: sleep under a mosquito net every night."];
+                        "Malaria can worsen suddenly without many early symptoms."
+                        ];
                     report {"response": response};
+                   
+                    
                 }
                 else {
                     user.risk_level = "low";
                     response=["LOW RISK FOR NOW\n\n"
                         "Your symptoms don't strongly suggest malaria right now.\n"
                         "BUT if you develop fever, chills, or severe headaches suddenly - go to hospital immediately.\n\n"
-                        "Malaria can start with very few symptoms.\n"
-                        "Use mosquito nets + repellents daily."];
+                        "Malaria can start with very few symptoms."];
                     report {"response": response};
+                   
                 };
+                
             }
             user.stage = "triage_complete";
+            here spawn nlp_agent;
             disengage;
         }
+        
+        disengage;
              
     }
 }
@@ -637,20 +789,19 @@ walker education_agent{
     has tips:str = "";
     has language: str = "";
 
-    obj __specs__ {
-        static has auth: bool = False;
-    }
      can start with entry {
         print("=== education START ===");
     self.language = user.language;
     print("DEBUG: User language for education_agent: " + self.language);
-    prevent= (here ++> prevention(self.language))[0];
+    prevent= (here ++> prevention(language=user.language))[0];
+    
     print("debug: prevention has started!");
-    self.tips = prevent.generate_tips();
-    print("DEBUG: Raw LLM response:\n" + self.tips);
-    response = self.tips.strip().split("\n"); 
-    report {"response": response};
-        
+    tips = prevent.generate_tips();
+    print("Debug:tips being generated");
+    #print("DEBUG: Raw LLM response:\n" + tips);
+    #response = tips.strip().join(); 
+    report {"response": [tips] };
+    disengage;   
 
     }
     }
@@ -695,13 +846,79 @@ can start with entry {
 
     #response = result.strip.join("\n");
     #report {"response": results};
-    report {"response":result };
+    full_text = ''.join(result);
+    report {"response":[full_text ]};
+    disengage;
 
     # Return to main menu
     user.stage = "waiting_service";
     here spawn nlp_agent(user);
     disengage;
 }
+}
+
+walker malaria_risk_agent {
+    has user: user;
+    has location: str = "";
+    has language: str = "";
+    has response_lines: str = [];
+
+    can start with entry {
+        print("=== malaria_risk_agent START ===");
+        print("DEBUG: User location: " + user.location);
+
+        location = user.location.strip().lower();
+        language = user.language;
+
+        user.stage = "checking_malaria_risk";
+
+        # -------------------------
+        # Validate location
+        # -------------------------
+        if location == "" {
+            if language == "sw" {
+                response_lines = [
+                    "Tafadhali andika eneo lako ili kukadiria hatari ya malaria(Mfano: Kisumu, Nairobi, Homa Bay)"
+                ];
+            } else {
+                response_lines = [
+                    "Please provide your location to assess malaria risk(Example: Kisumu, Nairobi, Homa Bay)"
+                ];
+            }
+
+            report {"response": response_lines};
+            disengage;
+        }
+
+        # -------------------------
+        # Spawn malaria risk node
+        # -------------------------
+        risk_node = (here ++> malaria_risk(
+            location=user.location,
+            language=user.language))[0];
+
+        #print("DEBUG: malaria_30day_risk node spawned");
+
+        # -------------------------
+        # Run computation
+        # -------------------------
+        predict=risk_node.compute();
+
+        #print("DEBUG: Risk response lines: " + json.dumps(predict));
+
+        # Join lines for frontend rendering
+        full_text = ''.join(predict);
+
+        report {"response": [full_text]};
+        disengage;
+
+        # -------------------------
+        # Return to main menu
+        # -------------------------
+        user.stage = "waiting_service";
+        here spawn nlp_agent(user);
+        disengage;
+    }
 }
 
 
@@ -763,6 +980,9 @@ cl {
             }
         } else {
             displayText = "" + msg.text;
+            console.log("TYPE:", type(msg.text["response"]));
+            console.log("VALUE:", msg.text["response"]);
+
         }
 
         if msg.sender == "bot" {
@@ -1230,6 +1450,11 @@ def LandingPage() -> any {
         return "sess_" + crypto.randomUUID();  # e.g., sess_b2d188bb-c039-4359-b595-be1bdee732c0
     });
 
+        [messages, setMessages] = useState([{
+        "sender": "bot",
+        "text": "🦟 Welcome back to MalariaPredict AI!   Your trusted companion for:   ✓ Symptom assessment    ✓ Risk prediction  ✓ Hospital location  ✓ Prevention guidance.  How can I serve you today?"
+         }]);
+
         useEffect(lambda -> None {
             sendMessage("");
         }, []);
@@ -1263,7 +1488,7 @@ def LandingPage() -> any {
             if result && result.reports && result.reports.length > 0 {
                 
                 response = result.reports[0]["response"];
-                bot_reply = response;#.join("\n");
+                bot_reply = response.join("\n");
                 console.log("result:" + result);
                 console.log("result_report:" + result.reports);
                 console.log(result.reports[0]["response"]);
@@ -1285,15 +1510,6 @@ def LandingPage() -> any {
         }
 
         return <div style={{"height":"100vh","display":"flex","flexDirection":"column","background":"#0f172a","color":"#f0f0f0"}}>
-            <div style={{"background":"#1a5fb4","padding":"20px","textAlign":"center"}}>
-                <h2 style={{"margin":"0","fontSize":"1.8em"}}>🦟 MalariaPredict AI</h2>
-                <p style={{"margin":"8px 0 0","fontSize":"1.1em","opacity":0.9}}>
-                  Bilingual symptom checker • Risk assessment • Nearest hospitals • Prevention tips
-                </p>
-                <p style={{"margin":"4px 0 0","fontStyle":"italic","opacity":0.8}}>
-                    <strong>Motto:</strong> Know sooner. Act faster. End malaria together.
-                </p>
-            </div>
 
             <div ref={chatScrollRef} style={{"flex":1,"overflowY":"auto","padding":"15px","display":"flex","flexDirection":"column"}}>
                 {messages.map(MessageBubble)}

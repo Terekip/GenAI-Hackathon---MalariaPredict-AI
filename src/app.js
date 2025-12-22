@@ -17,6 +17,8 @@ function MessageBubble(msg, index) {
     }
   } else {
     displayText = "" + msg.text;
+    console.log("TYPE:", typeof msg.text["response"]);
+    console.log("VALUE:", msg.text["response"]);
   }
   if (msg.sender === "bot") {
     return __jacJsx("div", {"key": index, "style": {"margin": "8px auto 8px 0", "padding": "12px 16px", "borderRadius": "18px 18px 4px 18px", "maxWidth": "75%", "width": "fit-content", "background": "#333", "color": "#fff", "textAlign": "left", "whiteSpace": "pre-line", "wordWrap": "break-word", "boxShadow": "0 2px 5px rgba(0,0,0,0.1)"}}, [displayText]);
@@ -98,6 +100,7 @@ function ChatPage() {
   let [sessionId, _] = useState(() => {
     return "sess_" + crypto.randomUUID();
   });
+  [messages, setMessages] = useState([{"sender": "bot", "text": "\ud83e\udd9f Welcome back to MalariaPredict AI!   Your trusted companion for:   \u2713 Symptom assessment    \u2713 Risk prediction  \u2713 Hospital location  \u2713 Prevention guidance.  How can I serve you today?"}]);
   useEffect(() => {
     sendMessage("");
   }, []);
@@ -120,7 +123,7 @@ function ChatPage() {
     let bot_reply = "No response from bot";
     if (result && result.reports && result.reports.length > 0) {
       let response = result.reports[0]["response"];
-      bot_reply = response;
+      bot_reply = response.join("\\n");
       console.log("result:" + result);
       console.log("result_report:" + result.reports);
       console.log(result.reports[0]["response"]);
@@ -133,7 +136,7 @@ function ChatPage() {
       sendMessage();
     }
   }
-  return __jacJsx("div", {"style": {"height": "100vh", "display": "flex", "flexDirection": "column", "background": "#0f172a", "color": "#f0f0f0"}}, [__jacJsx("div", {"style": {"background": "#1a5fb4", "padding": "20px", "textAlign": "center"}}, [__jacJsx("h2", {"style": {"margin": "0", "fontSize": "1.8em"}}, ["🦟 MalariaPredict AI"]), __jacJsx("p", {"style": {"margin": "8px 0 0", "fontSize": "1.1em", "opacity": 0.9}}, ["Bilingual symptom checker • Risk assessment • Nearest hospitals • Prevention tips"]), __jacJsx("p", {"style": {"margin": "4px 0 0", "fontStyle": "italic", "opacity": 0.8}}, [__jacJsx("strong", {}, ["Motto:"]), " Know sooner. Act faster. End malaria together."])]), __jacJsx("div", {"ref": chatScrollRef, "style": {"flex": 1, "overflowY": "auto", "padding": "15px", "display": "flex", "flexDirection": "column"}}, [messages.map(MessageBubble), loading && __jacJsx("div", {"style": {"color": "#aaa", "fontStyle": "italic"}}, ["Thinking..."])]), __jacJsx("div", {"style": {"padding": "20px", "background": "#111", "display": "flex", "gap": "10px"}}, [__jacJsx("input", {"value": input, "onChange": e => {
+  return __jacJsx("div", {"style": {"height": "100vh", "display": "flex", "flexDirection": "column", "background": "#0f172a", "color": "#f0f0f0"}}, [__jacJsx("div", {"ref": chatScrollRef, "style": {"flex": 1, "overflowY": "auto", "padding": "15px", "display": "flex", "flexDirection": "column"}}, [messages.map(MessageBubble), loading && __jacJsx("div", {"style": {"color": "#aaa", "fontStyle": "italic"}}, ["Thinking..."])]), __jacJsx("div", {"style": {"padding": "20px", "background": "#111", "display": "flex", "gap": "10px"}}, [__jacJsx("input", {"value": input, "onChange": e => {
     setInput(e.target.value);
   }, "onKeyPress": e => {
     if (e.key === "Enter") {

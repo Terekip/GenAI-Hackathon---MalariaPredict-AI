@@ -73,7 +73,7 @@ graph TB
 ## Installation & Setup
 
 ### Prerequisites
-- Python 3.8+
+- Python 3.10+
 - Jaseci Core
 - Jac-client for frontend
 - API Keys:
@@ -83,7 +83,7 @@ graph TB
 ### 1. Clone and Initialize
 ```bash
 git clone <repository-url>
-cd malariapredict-ai
+cd app.jac
 pip install -r requirements.txt
 ```
 
@@ -94,26 +94,6 @@ GEMINI_API_KEY=your_gemini_api_key_here
 OPENWEATHER_API_KEY=your_openweather_api_key_here
 ```
 
-### 3. Run Jaseci Server
-```bash
-jsctl -m
-jsserv makemigrations
-jsserv migrate
-jsserv runserver
-```
-
-### 4. Load the Application
-```bash
-jaseci> jac dot malaria_ai.jac
-```
-
-### 5. Run Jac-client Frontend
-```bash
-# In a new terminal
-cd frontend
-npm install
-npm start
-```
 
 ## Usage Flow
 
@@ -160,7 +140,7 @@ User → root_walker → user_agent (creates session) → nlp_agent
 ## Code Structure
 
 ```
-malaria_ai.jac
+app.jac
 ├── IMPORTS & CONFIGURATION
 │   ├── LLM model selection (Gemini/GPT-4o/Llama)
 │   └── Session storage initialization
@@ -203,18 +183,15 @@ malaria_ai.jac
 - Query: Searches 10km radius for medical facilities
 
 ### 4. **LLM Providers**
-- Primary: Gemini 2.0 Flash via LiteLLM
-- Fallbacks: GPT-4o, Groq/Llama 3
+- Primary: Gemini 2.5 Flash via LiteLLM
 - Usage: Prevention tip generation, conversational responses
 
 ## Configuration
 
 ### Model Selection
 ```python
-# Uncomment preferred model:
-glob llm = Model(model_name="gemini/gemini-2.0-flash", verbose=True);
-# glob llm = Model(model_name="gpt-4o");
-# glob llm = Model(model_name="groq/llama3-8b-8192", verbose=True);
+glob llm = Model(model_name="gemini/gemini-2.5-flash", verbose=True);
+
 ```
 
 ### Risk Calculation Parameters
@@ -225,19 +202,6 @@ rain_range = (15.0, 150.0)   # mm/month
 humidity_min = 60.0          # Percentage
 ```
 
-## Testing
-
-### Unit Tests
-```bash
-# Test geocoding
-jsctl> walker run geo_agent -ctx '{"location": "Nairobi"}'
-
-# Test risk calculation
-jsctl> walker run malaria_risk_agent -ctx '{"location": "Kisumu"}'
-
-# Test symptom triage
-jsctl> walker run triage_agent -ctx '{"symptoms": ["fever", "headache"]}'
-```
 
 ### Integration Tests
 1. Full conversation flow
@@ -253,30 +217,6 @@ jsctl> walker run triage_agent -ctx '{"symptoms": ["fever", "headache"]}'
 3. **LLM Timeouts**: Model switching with fallback chain
 4. **Session Expiry**: Automatic session renewal with history preservation
 
-### Debug Mode
-Enable LiteLLM debugging:
-```python
-# Uncomment in imports:
-# litellm._turn_on_debug()
-```
-
-## Deployment
-
-### Production Considerations
-1. **Session Storage**: Replace in-memory `sessions` dict with Redis
-2. **API Caching**: Implement Redis cache for weather/hospital data
-3. **Load Balancing**: Multiple Jaseci instances with shared session store
-4. **Monitoring**: Health checks for all external API dependencies
-
-### Docker Deployment
-```dockerfile
-FROM python:3.9
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-COPY . .
-CMD ["jsserv", "runserver", "0.0.0.0:8000"]
-```
 
 ## Jac-client Frontend Features
 

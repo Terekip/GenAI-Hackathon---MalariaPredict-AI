@@ -19,6 +19,10 @@ MalariaPredict AI is a bilingual (English/Kiswahili) AI-powered system for malar
 - Jac-client frontend (Jaseci-based React framework)
 - Stateful conversation management
 
+![Landing Page Screenshot](src/assets/homepage.png)
+
+Caption: The MalariaPredict AI landing page with hero section, features grid, and statistics bar.
+
 ## Architecture
 
 ```mermaid
@@ -54,7 +58,7 @@ graph TB
         MR --> OWM[OpenWeatherMap API]
         GEO --> NOM[Nominatim API]
         GEO --> OPS[Overpass API]
-        PREV --> LLM[Gemini/GPT-4o]
+        PREV --> LLM[Gemini-2.5-Flash]
     end
     
     subgraph "Data Storage"

@@ -13,8 +13,10 @@ import from dotenv {load_dotenv}
 
 
 
+
 glob llm = Model(model_name="gemini/gemini-2.5-flash", verbose=True);
 
+#GEMINI_API_KEY = os.getenv("GEMINI_API_KEY");
 # ----------------------------------------------------
 # SESSION STORAGE
 # ----------------------------------------------------
@@ -163,11 +165,13 @@ node geoagent {
         if elements_count == 0 {
             print("Has started");
             if user.language == "sw" {
-                response_lines.append("Hakuna hospitali iliyopatikana karibu.");
-                print("Debug:" + response_lines);
+                response=["Hakuna hospitali iliyopatikana karibu."];
+                report{"response":response};
+                
             } else {
-                response_lines.append("No hospitals found nearby.");
-                print("Debug:" + response_lines);
+                response=["No hospitals found nearby."];
+                report{"response":response};
+               
             }
             
         } else {
@@ -216,13 +220,12 @@ node geoagent {
 #-----------------------------------
 node malaria_risk {
     has location: str = " ";
-    has api_key: str = "ecbcff149136294d5f1c3d9f35039dae";
     has language: str = "";
     has prediction: str = [];
 
     def compute() -> dict {
         
-        api_key = "ecbcff149136294d5f1c3d9f35039dae";
+        api_key = os.getenv("OPEN_WEATHER_API");
         print("DEBUG: calculating risk in "+" " + self.location + " " + self.language);
         loc = self.location.strip().lower();
         # ---------------------------
@@ -476,6 +479,7 @@ walker nlp_agent {
 
 
                 report {"response": response};
+                
 
             }
             elif self.message == "2" {
@@ -489,15 +493,16 @@ walker nlp_agent {
                             "5. Exit\n\n"
                             "Reply with a number 1-5"];
                 report{"response": response};
+                
             } 
             else {
                 response = ["Tafadhali chagua lugha sahihi 1 au 2 / Please choose a valid language option 1 or 2.\n"];
                 report{"response": response};
-                disengage;
+               disengage; 
             };
-
             user.stage ="waiting_service";
-            disengage;        
+            disengage;
+                    
         };
 
         # Service routing
@@ -770,16 +775,17 @@ walker triage_agent {
                         "BUT if you develop fever, chills, or severe headaches suddenly - go to hospital immediately.\n\n"
                         "Malaria can start with very few symptoms."];
                     report {"response": response};
-                   
+                user.stage="triage complete"; 
                 };
                 
             }
-            user.stage = "triage_complete";
-            here spawn nlp_agent;
-            disengage;
+
+       user.stage = "waiting_language";
+       here spawn nlp_agent(message=self.message);
+       disengage;
+
         }
-        
-        disengage;
+
              
     }
 }
@@ -801,9 +807,13 @@ walker education_agent{
     #print("DEBUG: Raw LLM response:\n" + tips);
     #response = tips.strip().join(); 
     report {"response": [tips] };
+    user.stage = "waiting_language";
+    disengage;
+
+    here spawn nlp_agent(message=self.message);
     disengage;   
 
-    }
+      }
     }
 
 
@@ -836,6 +846,8 @@ can start with entry {
         report {"response": response};
         disengage;
     }
+    else{
+        if location == location {
 
     # Spawn the GeoAgent node (reusable logic)
     geo = (here ++> geoagent(location=location,language=user.language))[0];
@@ -848,13 +860,14 @@ can start with entry {
     #report {"response": results};
     full_text = ''.join(result);
     report {"response":[full_text ]};
-    disengage;
-
-    # Return to main menu
-    user.stage = "waiting_service";
-    here spawn nlp_agent(user);
-    disengage;
-}
+        }
+    user.stage = "waiting_language";
+    disengage;  
+     }
+    
+    here spawn nlp_agent(message=self.message);
+    disengage;  
+   }
 }
 
 walker malaria_risk_agent {
@@ -889,36 +902,29 @@ walker malaria_risk_agent {
             report {"response": response_lines};
             disengage;
         }
-
-        # -------------------------
-        # Spawn malaria risk node
-        # -------------------------
+        else{
+         if location == location {
         risk_node = (here ++> malaria_risk(
             location=user.location,
             language=user.language))[0];
 
-        #print("DEBUG: malaria_30day_risk node spawned");
-
-        # -------------------------
-        # Run computation
-        # -------------------------
         predict=risk_node.compute();
-
-        #print("DEBUG: Risk response lines: " + json.dumps(predict));
-
-        # Join lines for frontend rendering
         full_text = ''.join(predict);
 
         report {"response": [full_text]};
-        disengage;
+        
+         }
+         user.stage = "waiting_language";
+         disengage;
 
-        # -------------------------
-        # Return to main menu
-        # -------------------------
-        user.stage = "waiting_service";
-        here spawn nlp_agent(user);
+        }
+        
+        here spawn nlp_agent(message=self.message);
         disengage;
+  
     }
+    
+
 }
 
 
@@ -1556,8 +1562,7 @@ def LandingPage() -> any {
 
 with entry{
     load_dotenv();
-    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY");
-
+    
 }
 
 

@@ -111,7 +111,7 @@ graph TB
 
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/yourusername/your-repo.git
+   git clone [https://github.com/yourusername/your-repo.git](https://github.com/Terekip/GenAI-Hackathon---MalariaPredict-AI.git)
    cd your-repo
 
 2. **Install Node.js (if not already installed)**

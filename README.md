@@ -102,28 +102,60 @@ graph TB
 ## Installation & Setup
 
 ### Prerequisites
-- Python 3.10+
-- Jaseci Core
-- Node.js +18(for jac-client)
-- Jac-client for frontend
-- API Keys:
-  - OpenWeatherMap API key
-  - Gemini API key (or other LLM provider)
+- Git
+- Python 3.12+
+- Node.js 18+ (required for `jac-client` frontend)
+- npm (comes with Node.js)
 
-### 1. Clone and Initialize
-```bash
-git clone <repository-url>
-cd app.jac
+### Step-by-Step Setup
+
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/yourusername/your-repo.git
+   cd your-repo
+
+2. **Install Node.js (if not already installed)**
+Download Node.js 18+ from: https://nodejs.org/en/download/Verify:
+```
+node --version   # should be >=18
+npm --version
+```
+3. **Create & Activate Python Virtual Environment**
+```
+python -m venv .venv
+
+# Windows
+.venv\Scripts\activate
+
+# macOS/Linux
+source .venv/bin/activate
+```
+4. **Install Dependencies**
+```
 pip install -r requirements.txt
 ```
-
-### 2. Environment Configuration
-Create `.env` file:
-```env
-GEMINI_API_KEY=your_gemini_api_key_here
-OPENWEATHER_API_KEY=your_openweather_api_key_here
+5. **Navigate to the Jac App Directory**
 ```
-
+cd app.jac
+```
+6. **Create a .env file and place API KEYS**
+```
+GEMINI_API_KEY = your api key
+OPEN_WEATHER_API = your api key
+```
+or
+**In your terminal export the api keys**
+```
+export GEMINI_API_KEY = "your api key"
+export OPEN_WEATHER_API = "your api key"
+```
+7. **Run the Jac Server**
+```
+jac serve app.jac
+```
+8. **Open in Browser**
+Visit: http://localhost:8000/page/app
+You're all set! The app should now be running locally.
 
 ## Usage Flow
 

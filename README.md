@@ -136,7 +136,7 @@ pip install -r requirements.txt
 ```
 5. **Navigate to the Jac App Directory**
 ```
-cd app.jac
+cd GenAI-Hackathon---MalariaPredict-AI
 ```
 6. **Create a .env file and place API KEYS**
 ```

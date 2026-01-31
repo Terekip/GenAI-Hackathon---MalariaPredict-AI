@@ -1,3 +1,4 @@
 jaseci == 2.2.1
+jaclang==0.9.3
 python-dotenv>=1.0.0
 byllm

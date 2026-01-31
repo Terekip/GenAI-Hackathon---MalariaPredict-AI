@@ -119,6 +119,8 @@ Download Node.js 18+ from: https://nodejs.org/en/download/Verify:
 ```
 node --version   # should be >=18
 npm --version
+run npm install
+    npm run build
 ```
 3. **Create & Activate Python Virtual Environment**
 ```
